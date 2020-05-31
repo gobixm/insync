@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+option csharp_namespace = "Gobi.InSync.Service";
+
+package insync;
+
+service InSync {
+  
+}
