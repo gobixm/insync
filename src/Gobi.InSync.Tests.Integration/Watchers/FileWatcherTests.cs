@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Gobi.InSync.Tests.Integration.Watchers
 {
-    [Collection("Sequential")]
+    [Collection(nameof(FileWatcher))]
     public class FileWatcherTests
     {
         public FileWatcherTests()
@@ -40,6 +40,75 @@ namespace Gobi.InSync.Tests.Integration.Watchers
         private bool IsPathEqual(string a, string b)
         {
             return Path.GetFullPath(a) == Path.GetFullPath(b);
+        }
+
+        [Fact]
+        public async Task Start_Directory_CreateCaptured()
+        {
+            // arrange
+            var dirName = "dir";
+            var dirPath = $"{TestFolder}/{dirName}";
+            using var watcher = new FileWatcher($"{TestFolder}");
+
+            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+
+            // act
+            watcher.Start();
+            Directory.CreateDirectory(dirPath);
+
+            // assert
+            var ev = await firstEventTask;
+            ev.Should().BeOfType<FileCreated>();
+            ev.As<FileCreated>().FileName.Should().Be(dirName);
+            IsPathEqual(ev.As<FileCreated>().Path, dirPath).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Start_Directory_DeleteCaptured()
+        {
+            // arrange
+            var dirName = "dir";
+            var dirPath = $"{TestFolder}/{dirName}";
+            using var watcher = new FileWatcher($"{TestFolder}");
+            Directory.CreateDirectory(dirPath);
+
+            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+
+            // act
+            watcher.Start();
+            Directory.Delete(dirPath);
+
+            // assert
+            var ev = await firstEventTask;
+            ev.Should().BeOfType<FileDeleted>();
+            ev.As<FileDeleted>().FileName.Should().Be(dirName);
+            IsPathEqual(ev.As<FileDeleted>().Path, dirPath).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Start_Directory_RenameCaptured()
+        {
+            // arrange
+            var dirName = "dir";
+            var newName = "dir_new";
+            var dirPath = $"{TestFolder}/{dirName}";
+            var newPath = $"{TestFolder}/{newName}";
+            using var watcher = new FileWatcher($"{TestFolder}");
+            Directory.CreateDirectory(dirPath);
+
+            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+
+            // act
+            watcher.Start();
+            Directory.Move(dirPath, newPath);
+
+            // assert
+            var ev = await firstEventTask;
+            ev.Should().BeOfType<FileRenamed>();
+            ev.As<FileRenamed>().FileName.Should().Be(newName);
+            ev.As<FileRenamed>().OldFileName.Should().Be(dirName);
+            IsPathEqual(ev.As<FileRenamed>().Path, newPath).Should().BeTrue();
+            IsPathEqual(ev.As<FileRenamed>().OldPath, dirPath).Should().BeTrue();
         }
 
         [Fact]
