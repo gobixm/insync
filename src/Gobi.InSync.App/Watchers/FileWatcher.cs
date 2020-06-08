@@ -6,7 +6,7 @@ using Gobi.InSync.App.Watchers.Models;
 
 namespace Gobi.InSync.App.Watchers
 {
-    public sealed class FileWatcher : IDisposable
+    public sealed class FileWatcher : IFileWatcher
     {
         private readonly IScheduler _scheduler;
         private readonly FileSystemWatcher _watcher;

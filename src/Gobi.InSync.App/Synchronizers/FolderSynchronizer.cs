@@ -6,7 +6,7 @@ using Murmur;
 
 namespace Gobi.InSync.App.Synchronizers
 {
-    public class FolderSynchronizer
+    public class FolderSynchronizer : IFolderSynchronizer
     {
         private static EnumerationOptions _searchOptions;
 
