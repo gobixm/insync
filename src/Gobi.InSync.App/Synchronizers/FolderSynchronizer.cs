@@ -10,7 +10,7 @@ namespace Gobi.InSync.App.Synchronizers
     {
         private static EnumerationOptions _searchOptions;
 
-        public async Task SyncFolder(string sourcePath, string targetPath)
+        public void SyncFolder(string sourcePath, string targetPath)
         {
             var contexts = new Stack<SyncContext>();
             contexts.Push(new SyncContext

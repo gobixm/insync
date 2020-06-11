@@ -8,4 +8,7 @@
   <ItemGroup>
     <Protobuf Include="Protos\insync.proto" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gobi.InSync.App\Gobi.InSync.App.csproj" />
+  </ItemGroup>
 </Project>

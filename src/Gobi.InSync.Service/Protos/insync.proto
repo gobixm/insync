@@ -4,6 +4,27 @@ option csharp_namespace = "Gobi.InSync.Service";
 
 package insync;
 
+message AddSyncRequest {
+  string sourcePath = 1;
+  string targetPath = 2;
+}
+
+enum ErrorCode {
+  OK = 0;
+  Error = 1;
+}
+
+message AddSyncResponse {
+  ErrorCode result = 1;
+  string errorMessage = 2;
+  WatchFolder watchFolder = 3;
+}
+
+message WatchFolder {
+  string sourcePath = 1;
+  string targetPath = 2;
+}
+
 service InSync {
-  
+  rpc AddSync (AddSyncRequest) returns (AddSyncResponse);
 }

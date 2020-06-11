@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gobi.InSync.App", "Gobi.InS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gobi.InSync.Tests.Integration", "Gobi.InSync.Tests.Integration\Gobi.InSync.Tests.Integration.csproj", "{6E4C4114-758A-4A28-ABB4-5C5730575F74}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gobi.InSync.Cli", "Gobi.InSync.Cli\Gobi.InSync.Cli.csproj", "{471BE40F-CDDC-4CB9-BC31-60603F05068D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,5 +24,9 @@ Global
 		{6E4C4114-758A-4A28-ABB4-5C5730575F74}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E4C4114-758A-4A28-ABB4-5C5730575F74}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E4C4114-758A-4A28-ABB4-5C5730575F74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{471BE40F-CDDC-4CB9-BC31-60603F05068D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{471BE40F-CDDC-4CB9-BC31-60603F05068D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{471BE40F-CDDC-4CB9-BC31-60603F05068D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{471BE40F-CDDC-4CB9-BC31-60603F05068D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

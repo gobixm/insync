@@ -1,9 +1,7 @@
-﻿using System.Threading.Tasks;
-
-namespace Gobi.InSync.App.Synchronizers
+﻿namespace Gobi.InSync.App.Synchronizers
 {
     public interface IFolderSynchronizer
     {
-        Task SyncFolder(string sourcePath, string targetPath);
+        void SyncFolder(string sourcePath, string targetPath);
     }
 }

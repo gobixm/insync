@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using Gobi.InSync.App.Extensions;
+using Gobi.InSync.App.Helpers;
 using Gobi.InSync.App.Watchers.Models;
 
 namespace Gobi.InSync.App.Dispatchers
@@ -8,7 +9,7 @@ namespace Gobi.InSync.App.Dispatchers
     {
         public void Dispatch(string sourceFolder, string targetFolder, IFileEvent fileEvent)
         {
-            var targetPath = Path.Combine(targetFolder, Path.GetRelativePath(sourceFolder, fileEvent.Path));
+            var targetPath = Path.Combine(targetFolder, fileEvent.FileName);
             switch (fileEvent)
             {
                 case FileChanged _:
@@ -19,8 +20,7 @@ namespace Gobi.InSync.App.Dispatchers
                     RemoveFile(targetPath);
                     break;
                 case FileRenamed renamed:
-                    var targetOldPath = Path.Combine(targetFolder,
-                        Path.GetRelativePath(sourceFolder, renamed.OldFileName));
+                    var targetOldPath = Path.Combine(targetFolder, renamed.OldFileName);
                     RenameFile(targetOldPath, targetPath);
                     break;
             }
@@ -31,12 +31,13 @@ namespace Gobi.InSync.App.Dispatchers
             var sourceInfo = new FileInfo(sourcePath);
             var targetInfo = new FileInfo(targetPath);
 
-            if (!sourceInfo.Exists) return;
+            if (!PathUtils.IsPathExists(sourceInfo.FullName)) return;
 
-            if (targetInfo.Exists && targetInfo.IsFolder() && !sourceInfo.IsFolder())
+            if (PathUtils.IsPathExists(targetInfo.FullName) && targetInfo.IsFolder() && !sourceInfo.IsFolder())
                 Directory.Delete(targetInfo.FullName, true);
 
-            if (!targetInfo.Exists && sourceInfo.IsFolder()) Directory.CreateDirectory(targetInfo.FullName);
+            if (!PathUtils.IsPathExists(targetInfo.FullName) && sourceInfo.IsFolder())
+                Directory.CreateDirectory(targetInfo.FullName);
 
             if (!sourceInfo.IsFolder()) File.Copy(sourceInfo.FullName, targetInfo.FullName, true);
         }
@@ -44,22 +45,26 @@ namespace Gobi.InSync.App.Dispatchers
         private void RemoveFile(string targetPath)
         {
             var targetInfo = new FileInfo(targetPath);
-            if (!targetInfo.Exists) return;
 
-            if (targetInfo.Exists && targetInfo.IsFolder()) Directory.Delete(targetInfo.FullName, true);
+            if (!PathUtils.IsPathExists(targetPath)) return;
 
-            if (targetInfo.Exists && !targetInfo.IsFolder()) File.Delete(targetInfo.FullName);
+            if (targetInfo.IsFolder()) Directory.Delete(targetInfo.FullName, true);
+
+            if (!targetInfo.IsFolder()) File.Delete(targetInfo.FullName);
         }
 
         private void RenameFile(string oldPath, string newPath)
         {
             var oldTargetInfo = new FileInfo(oldPath);
             var targetInfo = new FileInfo(newPath);
-            if (!oldTargetInfo.Exists) return;
+            if (!PathUtils.IsPathExists(oldTargetInfo.FullName)) return;
 
-            RemoveFile(oldTargetInfo.FullName);
+            RemoveFile(targetInfo.FullName);
 
-            if (oldTargetInfo.IsFolder()) Directory.Move(oldTargetInfo.FullName, targetInfo.FullName);
+            if (oldTargetInfo.IsFolder())
+                Directory.Move(oldTargetInfo.FullName, targetInfo.FullName);
+            else
+                File.Move(oldTargetInfo.FullName, targetInfo.FullName);
         }
     }
 }

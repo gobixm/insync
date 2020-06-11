@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Gobi.InSync.App.Dispatchers;
+using Gobi.InSync.App.Services;
+using Gobi.InSync.App.Synchronizers;
+using Gobi.InSync.App.Watchers;
 using Gobi.InSync.Service.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -18,15 +18,17 @@ namespace Gobi.InSync.Service
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
+
+            services.AddSingleton<ISyncService, SyncService>();
+            services.AddTransient<IFileEventDispatcher, FileEventDispatcher>();
+            services.AddTransient<IFolderSynchronizer, FolderSynchronizer>();
+            services.AddTransient<IFileWatcherFactory, FileWatcherFactory>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
+            if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
             app.UseRouting();
 
@@ -34,10 +36,12 @@ namespace Gobi.InSync.Service
             {
                 endpoints.MapGrpcService<InSyncGrpcService>();
 
-                endpoints.MapGet("/", async context =>
-                {
-                    await context.Response.WriteAsync("Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
-                });
+                endpoints.MapGet("/",
+                    async context =>
+                    {
+                        await context.Response.WriteAsync(
+                            "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+                    });
             });
         }
     }
