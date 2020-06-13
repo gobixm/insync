@@ -3,7 +3,10 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Gobi.Bootstrap.AspNetCore" Version="1.0.0" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.27.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.5"  PrivateAssets="All" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.5" />
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="Protos\insync.proto" />

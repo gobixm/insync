@@ -17,14 +17,34 @@ enum ErrorCode {
 message AddSyncResponse {
   ErrorCode result = 1;
   string errorMessage = 2;
-  WatchFolder watchFolder = 3;
+  Sync sync = 3;
 }
 
-message WatchFolder {
+message Sync {
   string sourcePath = 1;
   string targetPath = 2;
 }
 
+message ListSyncRequest {
+}
+
+message ListSyncResponse {
+  ErrorCode result = 1;
+  repeated Sync watches = 2;
+}
+
+message RemoveSyncRequest {
+  string sourcePath = 1;
+  string targetPath = 2;
+}
+
+message RemoveSyncResponse {
+  ErrorCode result = 1;
+  repeated Sync removed = 2;
+}
+
 service InSync {
   rpc AddSync (AddSyncRequest) returns (AddSyncResponse);
+  rpc ListSync (ListSyncRequest) returns (ListSyncResponse);
+  rpc RemoveSync (RemoveSyncRequest) returns (RemoveSyncResponse);
 }

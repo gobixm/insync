@@ -1,131 +1,75 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using Gobi.InSync.App.Dispatchers;
-using Gobi.InSync.App.Helpers;
-using Gobi.InSync.App.Services.Models;
-using Gobi.InSync.App.Synchronizers;
-using Gobi.InSync.App.Watchers;
+using System.Threading.Tasks;
+using Gobi.InSync.App.Persistence;
+using Gobi.InSync.App.Persistence.Models;
+using Gobi.InSync.App.Persistence.Repositories;
 
 namespace Gobi.InSync.App.Services
 {
-    public sealed class SyncService : ISyncService
+    public class SyncService : ISyncService
     {
-        private readonly IFileEventDispatcher _fileEventDispatcher;
-        private readonly IFileWatcherFactory _fileWatcherFactory;
-        private readonly IFolderSynchronizer _folderSynchronizer;
-        private readonly ConcurrentDictionary<string, Unwatch> _watchers = new ConcurrentDictionary<string, Unwatch>();
+        private readonly IWatchService _watchService;
 
-        public SyncService(
-            IFolderSynchronizer folderSynchronizer,
-            IFileWatcherFactory fileWatcherFactory,
-            IFileEventDispatcher fileEventDispatcher
-        )
+        public SyncService(IWatchService watchService)
         {
-            _folderSynchronizer = folderSynchronizer;
-            _fileWatcherFactory = fileWatcherFactory;
-            _fileEventDispatcher = fileEventDispatcher;
+            _watchService = watchService;
         }
 
-        public void Dispose()
+        public async Task StartAsync(IUnitOfWork unitOfWork)
         {
-            _watchers?
-                .Values
-                .ToList()
-                .ForEach(x => x.Dispose());
+            await StartSavedWatches(unitOfWork);
         }
 
-        public WatchFolder AddSyncFolder(string sourceFolder, string targetFolder)
+        public async Task AddWatchAsync(IUnitOfWork unitOfWork, SyncWatch syncWatch)
         {
-            if (string.IsNullOrEmpty(sourceFolder))
-                throw new ArgumentException($"{nameof(sourceFolder)} can't be null or empty");
-
-            if (!Directory.Exists(sourceFolder)) throw new DirectoryNotFoundException(sourceFolder);
-
-            var fullSourcePath = Path.GetFullPath(sourceFolder);
-            var fullTargetPath = Path.GetFullPath(targetFolder);
-
-            ThrowIfRelative(sourceFolder, targetFolder);
-
-            if (_watchers.Keys.Any(x => PathUtils.IsSubPath(x, fullSourcePath)))
-                throw new ArgumentException("Path or it parent already added.");
-
-            RemoveSubWatches(fullSourcePath);
-
-            var unwatch = SynchronizeAndWatch(fullSourcePath, fullTargetPath);
-            _watchers[fullSourcePath] = unwatch;
-            return unwatch.WatchFolder;
+            var syncWatchRepository = unitOfWork.GetRepository<ISyncWatchRepository>();
+            await syncWatchRepository.AddAsync(syncWatch);
         }
 
-        public void RemoveSyncFolder(string sourceFolder)
+        public async Task<List<SyncWatch>> DeleteWatchesAsync(IUnitOfWork unitOfWork, string sourceFolder,
+            string targetFolder)
         {
-            _watchers.TryRemove(sourceFolder, out _);
-        }
+            if (string.IsNullOrEmpty(sourceFolder)) throw new ArgumentNullException(nameof(sourceFolder));
 
-        public List<WatchFolder> GetSyncFolders(string sourceFolder)
-        {
-            return _watchers.Values.Select(x => x.WatchFolder)
-                .Where(x => x.Source == sourceFolder)
-                .ToList();
-        }
+            var syncWatchRepository = unitOfWork.GetRepository<ISyncWatchRepository>();
 
-        private void RemoveSubWatches(string fullSourcePath)
-        {
-            foreach (var subPath in _watchers.Keys.Where(x => PathUtils.IsSubPath(fullSourcePath, x)))
-                _watchers.TryRemove(subPath, out _);
-        }
-
-        private static void ThrowIfRelative(string sourceFolder, string targetFolder)
-        {
-            if (PathUtils.IsSubPath(sourceFolder, targetFolder))
-                throw new ArgumentException("Target path is a part of source path.");
-
-            if (PathUtils.IsSubPath(targetFolder, sourceFolder))
-                throw new ArgumentException("Source path is a part of target path.");
-        }
-
-        private Unwatch SynchronizeAndWatch(string fullSourcePath, string fullTargetPath)
-        {
-            var watcher = _fileWatcherFactory.Create(fullSourcePath);
-            _folderSynchronizer.SyncFolder(fullSourcePath, fullTargetPath);
-            watcher.Start();
-
-            var subscription = watcher.FileObservable()
-                .Subscribe(x => _fileEventDispatcher.Dispatch(fullSourcePath, fullTargetPath, x));
-
-            var unwatch = new Unwatch(
-                watcher,
-                subscription,
-                new WatchFolder
-                {
-                    Source = fullSourcePath,
-                    Target = fullTargetPath
-                }
-            );
-            return unwatch;
-        }
-
-        private sealed class Unwatch : IDisposable
-        {
-            private readonly IDisposable _subscription;
-            private readonly IFileWatcher _watcher;
-
-            public Unwatch(IFileWatcher watcher, IDisposable subscription, WatchFolder watchFolder)
+            List<SyncWatch> watchesToDelete;
+            if (string.IsNullOrEmpty(targetFolder))
             {
-                _subscription = subscription;
-                WatchFolder = watchFolder;
-                _watcher = watcher;
+                watchesToDelete = await syncWatchRepository.GetBySourceAsync(sourceFolder);
+            }
+            else
+            {
+                var watchToDelete = await syncWatchRepository.GetAsync(sourceFolder, targetFolder);
+                if (watchToDelete == null) throw new ArgumentException("Watch not found");
+                watchesToDelete = new List<SyncWatch> {watchToDelete};
             }
 
-            public WatchFolder WatchFolder { get; }
+            if (!watchesToDelete.Any()) throw new ArgumentException("No watches found");
 
-            public void Dispose()
-            {
-                _subscription?.Dispose();
-                _watcher?.Dispose();
-            }
+            syncWatchRepository.Delete(watchesToDelete);
+
+            return watchesToDelete;
+        }
+
+        public async Task<List<SyncWatch>> GetWatchesAsync(IUnitOfWork unitOfWork)
+        {
+            var syncWatchRepository = unitOfWork.GetRepository<ISyncWatchRepository>();
+            return await syncWatchRepository.GetAllAsync();
+        }
+
+        private async Task StartSavedWatches(IUnitOfWork unitOfWork)
+        {
+            var syncWatchRepository = unitOfWork.GetRepository<ISyncWatchRepository>();
+            var savedWatches = await GetSavedWatches(syncWatchRepository);
+            savedWatches.ForEach(x => _watchService.StartWatching(x.SourcePath, x.TargetPath));
+        }
+
+        private async Task<List<SyncWatch>> GetSavedWatches(ISyncWatchRepository repository)
+        {
+            return await repository.GetAllAsync();
         }
     }
 }
