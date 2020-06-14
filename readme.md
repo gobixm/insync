@@ -1,3 +1,6 @@
+
+![Build](https://github.com/gobixm/insync/workflows/Build/badge.svg?branch=master)
+
 # Description
 
 Service and cli to replicate one folder to another.
