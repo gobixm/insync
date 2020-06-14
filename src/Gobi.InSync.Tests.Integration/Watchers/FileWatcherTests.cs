@@ -23,16 +23,22 @@ namespace Gobi.InSync.Tests.Integration.Watchers
         private static readonly string RootFolder = $"test/{nameof(FileWatcherTests)}";
         private static readonly string TestFolder = $"{RootFolder}/test_folder";
 
-        private async Task<T> SubscribeFirstAsync<T>(IObservable<T> observable)
+        private async Task<T> SubscribeFirstAsync<T, TEvent>(IObservable<T> observable)
         {
-            using var cts = new CancellationTokenSource(30000);
+            var millisecondsDelay = 3000;
+            using var cts = new CancellationTokenSource(millisecondsDelay);
             var tcs = new TaskCompletionSource<T>();
             observable
-                .FirstAsync()
+                .FirstAsync(x => x is TEvent)
                 .Subscribe(
                     x => tcs.SetResult(x),
                     cts.Token);
 
+            await Task.WhenAny(Task.Delay(millisecondsDelay, cts.Token), tcs.Task);
+            if (!tcs.Task.IsCompleted)
+            {
+                tcs.SetCanceled();
+            }
             return await tcs.Task;
         }
 
@@ -50,7 +56,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             var dirPath = $"{TestFolder}/{dirName}";
             using var watcher = new FileWatcher($"{TestFolder}");
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileCreated>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -72,7 +78,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             using var watcher = new FileWatcher($"{TestFolder}");
             Directory.CreateDirectory(dirPath);
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileDeleted>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -80,6 +86,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
 
             // assert
             var ev = await firstEventTask;
+
             ev.Should().BeOfType<FileDeleted>();
             ev.As<FileDeleted>().FileName.Should().Be(dirName);
             IsPathEqual(ev.As<FileDeleted>().Path, dirPath).Should().BeTrue();
@@ -96,7 +103,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             using var watcher = new FileWatcher($"{TestFolder}");
             Directory.CreateDirectory(dirPath);
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileRenamed>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -121,7 +128,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             await using var file = File.Create(filePath);
             await file.DisposeAsync();
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileChanged>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -142,7 +149,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             var filePath = $"{TestFolder}/{fileName}";
             using var watcher = new FileWatcher($"{TestFolder}");
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileCreated>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -165,7 +172,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             await using var file = File.Create(filePath);
             await file.DisposeAsync();
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileDeleted>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -190,7 +197,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             await using var file = File.Create(filePath);
             await file.DisposeAsync();
 
-            var firstEventTask = SubscribeFirstAsync(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileRenamed>(watcher.FileObservable());
 
             // act
             watcher.Start();
