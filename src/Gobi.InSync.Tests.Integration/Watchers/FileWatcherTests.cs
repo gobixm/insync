@@ -25,7 +25,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
 
         private async Task<T> SubscribeFirstAsync<T, TEvent>(IObservable<T> observable)
         {
-            var millisecondsDelay = 3000;
+            var millisecondsDelay = 10000;
             using var cts = new CancellationTokenSource(millisecondsDelay);
             var tcs = new TaskCompletionSource<T>();
             observable
