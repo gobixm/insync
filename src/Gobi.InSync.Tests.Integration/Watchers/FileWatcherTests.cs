@@ -35,10 +35,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
                     cts.Token);
 
             await Task.WhenAny(Task.Delay(millisecondsDelay, cts.Token), tcs.Task);
-            if (!tcs.Task.IsCompleted)
-            {
-                tcs.SetCanceled();
-            }
+            if (!tcs.Task.IsCompleted) tcs.SetCanceled();
             return await tcs.Task;
         }
 
@@ -197,7 +194,7 @@ namespace Gobi.InSync.Tests.Integration.Watchers
             await using var file = File.Create(filePath);
             await file.DisposeAsync();
 
-            var firstEventTask = SubscribeFirstAsync<IFileEvent, FileRenamed>(watcher.FileObservable());
+            var firstEventTask = SubscribeFirstAsync<IFileEvent, IFileEvent>(watcher.FileObservable());
 
             // act
             watcher.Start();
@@ -205,11 +202,21 @@ namespace Gobi.InSync.Tests.Integration.Watchers
 
             // assert
             var ev = await firstEventTask;
-            ev.Should().BeOfType<FileRenamed>();
-            ev.As<FileRenamed>().FileName.Should().Be(newName);
-            ev.As<FileRenamed>().OldFileName.Should().Be(fileName);
-            IsPathEqual(ev.As<FileRenamed>().Path, newPath).Should().BeTrue();
-            IsPathEqual(ev.As<FileRenamed>().OldPath, filePath).Should().BeTrue();
+
+            // different behaviour on windows and linux
+            if (ev is FileRenamed)
+            {
+                ev.Should().BeOfType<FileRenamed>();
+                ev.As<FileRenamed>().FileName.Should().Be(newName);
+                ev.As<FileRenamed>().OldFileName.Should().Be(fileName);
+                IsPathEqual(ev.As<FileRenamed>().Path, newPath).Should().BeTrue();
+                IsPathEqual(ev.As<FileRenamed>().OldPath, filePath).Should().BeTrue();
+                return;
+            }
+
+            ev.Should().BeOfType<FileCreated>();
+            ev.As<FileCreated>().FileName.Should().Be(newName);
+            IsPathEqual(ev.As<FileCreated>().Path, newPath).Should().BeTrue();
         }
     }
 }
