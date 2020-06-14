@@ -1,0 +1,37 @@
+name: Publish to nuget
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  publish:
+    name: build, pack & publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.200
+
+      - name: Publish Gobi.InSync.Service
+        id: publish_nuget_insync_service
+        uses: rohith/publish-nuget@v2
+        with:
+          PROJECT_FILE_PATH: src/Gobi.InSync.Service/Gobi.InSync.Service.csproj          
+          PACKAGE_NAME: Gobi.InSync.Service
+          VERSION_REGEX: <Version>(.*)<\/Version>
+          TAG_FORMAT: v*
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+
+      - name: Publish Gobi.InSync.Clie
+        id: publish_nuget_insync_clie
+        uses: rohith/publish-nuget@v2
+        with:
+          PROJECT_FILE_PATH: src/Gobi.InSync.Cli/Gobi.InSync.Cli.csproj           
+          PACKAGE_NAME: Gobi.InSync.Cli
+          VERSION_REGEX: <Version>(.*)<\/Version>
+          TAG_FORMAT: v*
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}

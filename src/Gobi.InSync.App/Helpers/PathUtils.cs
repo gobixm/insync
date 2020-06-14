@@ -8,7 +8,7 @@ namespace Gobi.InSync.App.Helpers
         {
             var left = new DirectoryInfo(leftPath);
             var right = new DirectoryInfo(rightPath);
-            var isParent = false;
+            
             while (right.Parent != null)
                 if (right.Parent.FullName == left.FullName)
                     return true;

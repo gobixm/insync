@@ -26,6 +26,7 @@ namespace Gobi.InSync.App.Services
         {
             var syncWatchRepository = unitOfWork.GetRepository<ISyncWatchRepository>();
             await syncWatchRepository.AddAsync(syncWatch);
+            _watchService.StartWatching(syncWatch.SourcePath, syncWatch.TargetPath);
         }
 
         public async Task<List<SyncWatch>> DeleteWatchesAsync(IUnitOfWork unitOfWork, string sourceFolder,
@@ -50,6 +51,7 @@ namespace Gobi.InSync.App.Services
             if (!watchesToDelete.Any()) throw new ArgumentException("No watches found");
 
             syncWatchRepository.Delete(watchesToDelete);
+            watchesToDelete.ForEach(x => _watchService.StopWatching(x.SourcePath, x.TargetPath));
 
             return watchesToDelete;
         }

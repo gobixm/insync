@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 using CommandLine;
+using CommandLine.Text;
 using Gobi.InSync.Service;
-using Google.Protobuf;
 using Grpc.Net.Client;
 
 namespace Gobi.InSync.Cli
@@ -41,12 +41,12 @@ namespace Gobi.InSync.Cli
                 "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
             using var channel = GrpcChannel.ForAddress("http://localhost:5000");
             var client = new Service.InSync.InSyncClient(channel);
-
+            
             return Parser.Default.ParseArguments<AddOptions, RemoveOptions, ListOptions>(args)
-                .MapResult<AddOptions, RemoveOptions, ListOptions, int>(
-                    opts => Add(opts, client),
-                    opts => Remove(opts, client),
-                    opts => List(opts, client),
+                .MapResult(
+                    (AddOptions opts) => Add(opts, client),
+                    (RemoveOptions opts) => Remove(opts, client),
+                    (ListOptions opts) => List(opts, client),
                     errs => 1);
         }
 
